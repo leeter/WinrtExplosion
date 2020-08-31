@@ -12,8 +12,3 @@
 #include <chrono>
 #include <optional>
 #include <winrt/Windows.Foundation.h>
-#include <wrl/wrappers/corewrappers.h>
-#include <ppl.h>
-#include <pplawait.h>
-#include <pplcancellation_token.h>
-#include <ppltasks.h>

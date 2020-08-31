@@ -158,11 +158,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         PostQuitMessage(0);
         break;
-    case WM_QUIT:
-        if (asyncItem) {
-            asyncItem->Cancel();
-        }
-        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -188,20 +183,20 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-winrt::Windows::Foundation::IAsyncAction doSomethingAsync3(HANDLE evt) {
+winrt::Windows::Foundation::IAsyncAction doSomethingAsync3() {
     using namespace std::chrono_literals;
+    using namespace winrt;
     auto cancellation = co_await winrt::get_cancellation_token();
-    cancellation.callback([evt] {
-        SetEvent(evt);
-       });
-    while (!co_await winrt::resume_on_signal(evt, 1s)) {
-
-        Sleep(6000);
+    while (true) {
+        co_await 2s;
+        if (cancellation()) {
+            co_return;
+        }
     }
 }
 
-winrt::Windows::Foundation::IAsyncAction doSomethingAsync2(HANDLE evt) {
-    co_await doSomethingAsync3(evt);
+winrt::Windows::Foundation::IAsyncAction doSomethingAsync2() {
+    co_await doSomethingAsync3();
 }
 
 winrt::Windows::Foundation::IAsyncAction doSomethingAsync()
@@ -210,15 +205,11 @@ winrt::Windows::Foundation::IAsyncAction doSomethingAsync()
     using namespace winrt;
     constexpr auto event_count = 30;
     co_await winrt::resume_background();
-    std::vector<Microsoft::WRL::Wrappers::Event> events;
     std::vector<winrt::Windows::Foundation::IAsyncAction> actions;
     actions.reserve(event_count);
-    
-    events.reserve(event_count);
+   
     for (int i = 0; i < event_count; ++i) {
-        HANDLE evt = CreateEventW(nullptr, false, false, nullptr);
-        events.emplace_back(evt);
-        actions.emplace_back(doSomethingAsync2(evt));
+        actions.emplace_back(doSomethingAsync2());
     }
     auto cancellation = co_await winrt::get_cancellation_token();
     cancellation.callback([&actions] {
