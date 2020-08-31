@@ -183,44 +183,16 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-winrt::Windows::Foundation::IAsyncAction doSomethingAsync3() {
+winrt::Windows::Foundation::IAsyncAction doSomethingAsync2() {
     using namespace std::chrono_literals;
     using namespace winrt;
-    auto cancellation = co_await winrt::get_cancellation_token();
-    while (true) {
-        co_await 2s;
-        if (cancellation()) {
-            co_return;
-        }
-    }
-}
-
-winrt::Windows::Foundation::IAsyncAction doSomethingAsync2() {
-    co_await doSomethingAsync3();
+    // Fails when resuming as the resume does not ensure CoInitialize is called on the threadpool thread
+    co_await 2s;
 }
 
 winrt::Windows::Foundation::IAsyncAction doSomethingAsync()
 {
-    using namespace std::chrono_literals;
-    using namespace winrt;
-    constexpr auto event_count = 30;
-    co_await winrt::resume_background();
-    std::vector<winrt::Windows::Foundation::IAsyncAction> actions;
-    actions.reserve(event_count);
-   
-    for (int i = 0; i < event_count; ++i) {
-        actions.emplace_back(doSomethingAsync2());
-    }
-    auto cancellation = co_await winrt::get_cancellation_token();
-    cancellation.callback([&actions] {
-        for (auto& action : actions) {
-            action.Cancel();
-        }
-        });
-    while (true) {
-        if (cancellation()) {
-            co_return;
-        }
-        co_await 2s;
-    }
+    // This line makes no difference it fails regardless
+    //co_await winrt::resume_background();
+    co_await doSomethingAsync2();
 }
